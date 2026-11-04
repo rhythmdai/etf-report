@@ -59,7 +59,9 @@ def test_load_quant_preset_params_uses_shared_contract(tmp_path, load_module):
         encoding="utf-8",
     )
 
-    params = module.load_quant_preset_params(str(config_path))
+    # 显式传入 gam-0：本用例的 fixture 只定义了这一个预设，
+    # 而不传参时函数会跟随 DEFAULT_PRESET（当前是 zen-nl）。
+    params = module.load_quant_preset_params(str(config_path), "gam-0")
 
     assert params["w1"] == 50
     assert params["w3"] == 40
