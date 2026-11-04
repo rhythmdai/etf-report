@@ -693,6 +693,45 @@ presets:
       ema: *id004
       volume_ratio: *id005
       log_return_deviation: *id006
+  zen-nl:
+    label: '0L'
+    description: 禅修者0 · 无杠杆 MH=2 N=40 TB=0（zen-0 去掉 1.8 倍融资仓位）
+    scoring:
+      weights: *id001
+      bias_bonus: 0.0
+      sensitivity: *id002
+    confidence:
+      type: ma_trend
+      ma_trend_period: 19
+      ma_bull_pos: 1.0
+      ma_bear_pos: 0.6
+      ma_direction_confirm: true
+      dead_zone: 17
+      full_zone: 65
+      regime_base: *id003
+      regime_window: 8
+      regime_threshold: 0.03
+      breadth_weight: 0.2
+      clarity_threshold: 0.03
+      dd_sensitivity: 0.2
+    position:
+      signal_steps: 40
+      concentration: 0.372
+      c_sensitivity: 0.1
+      rebalance_freq: daily
+      execution_timing: same_close
+      band: 0.03
+      commission_rate: 0.00026
+      max_holdings_special: 8
+      weighting: arithmetic
+      band_sensitivity: 0.0
+      max_holdings: 2
+      top_boost: 0
+    factors:
+      f1_active_days: 1
+      ema: *id004
+      volume_ratio: *id005
+      log_return_deviation: *id006
   zen-2:
     label: '2'
     description: Sortino最大 MH=4 N=40 TB=6

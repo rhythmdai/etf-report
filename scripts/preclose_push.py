@@ -21,6 +21,11 @@ OUTPUT_MD = "--output-md" in sys.argv   # REQ-353: write markdown to Desktop ins
 DRY_RUN = "--dry-run" in sys.argv
 IS_CI = os.environ.get("GITHUB_ACTIONS", "") == "true"
 from etf_report.core.quant_contract import DEFAULT_PRESET
+# Which preset to push. Default keeps upstream behaviour (DEFAULT_PRESET = gam-0);
+# the workflow overrides it via PRECLOSE_PRESET (e.g. zen-nl = 禅修者, no leverage, MH=2).
+PRESET = os.environ.get("PRECLOSE_PRESET", "").strip() or DEFAULT_PRESET
+SCHOOL_LABELS = {"gam": "赌徒", "zen": "禅者", "act": "精算师", "cst": "自定义"}
+PRESET_LABEL = next((v for k, v in SCHOOL_LABELS.items() if PRESET.startswith(k + "-")), PRESET)
 TUNER_STARTUP_TIMEOUT = 60  # max seconds to wait for Tuner
 
 def log(msg):
@@ -199,8 +204,8 @@ def short(code):
 r = requests.get(f"{TUNER_URL}/api/presets", timeout=10)
 presets = r.json()
 available = [k for k in presets.keys() if not k.startswith("_")]
-if DEFAULT_PRESET not in presets:
-    log(f"ERROR: preset '{DEFAULT_PRESET}' not found in Tuner response")
+if PRESET not in presets:
+    log(f"ERROR: preset '{PRESET}' not found in Tuner response")
     log(f"  Available presets: {available}")
     log(f"  Falling back to first available: {available[0] if available else 'NONE'}")
     if not available:
@@ -208,10 +213,10 @@ if DEFAULT_PRESET not in presets:
         sys.exit(1)
     p = presets[available[0]]
 else:
-    p = presets[DEFAULT_PRESET]
+    p = presets[PRESET]
 end = now.strftime("%Y-%m-%d")
 start = f"{now.year}-05-01"
-log(f"  Preset: {DEFAULT_PRESET} | Window: {start} ~ {end}")
+log(f"  Preset: {PRESET} | Window: {start} ~ {end}")
 
 # Start from the full preset params (contract layer provides correct units + all keys).
 # Only override fields that preclose specifically needs to change.
@@ -227,7 +232,7 @@ params.update({
 # ═══════════════════════════════════════════════════════════════
 log("=" * 50)
 log("Stage 4: Run backtest")
-log(f"  {start} ~ {end} ({DEFAULT_PRESET})")
+log(f"  {start} ~ {end} ({PRESET})")
 
 r = requests.post(f"{TUNER_URL}/api/run", json=params, timeout=180)
 result = r.json()
@@ -278,7 +283,7 @@ now = datetime.now()
 md_lines = [
     f"## 实盘调仓执行参照表",
     "",
-    f"**策略**: 赌徒 | **日期**: {now:%Y-%m-%d}",
+    f"**策略**: {PRESET_LABEL} | **日期**: {now:%Y-%m-%d}",
     "",
 ]
 
@@ -332,7 +337,7 @@ if OUTPUT_MD:
     log(f"Stage 6: Written to {desktop}")
 elif DRY_RUN:
     log("Stage 6: DRY RUN — skipping push, printing to stdout")
-    title = f"{now:%m/%d} 赌徒 调仓信号"
+    title = f"{now:%m/%d} {PRESET_LABEL} 调仓信号"
     if IS_CI:
         title += " (远端)"
     print()
@@ -340,7 +345,7 @@ elif DRY_RUN:
     print(content_str)
 else:
     log("Stage 6: Push to WeChat")
-    title = f"{now:%m/%d} 赌徒 调仓信号"
+    title = f"{now:%m/%d} {PRESET_LABEL} 调仓信号"
     if IS_CI:
         title += " (远端)"
 

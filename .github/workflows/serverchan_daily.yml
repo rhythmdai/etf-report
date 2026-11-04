@@ -66,6 +66,8 @@ jobs:
         env:
           TZ: Asia/Shanghai
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+          # 禅修者（无杠杆版）：zen-0 的 ma_bull_pos 由 1.8 改为 1.0，最多持 2 只 ETF。
+          PRECLOSE_PRESET: zen-nl
         run: |
           FLAGS=""
           if [[ "${{ inputs.dry_run }}" == "true" ]]; then FLAGS="--dry-run"; fi
