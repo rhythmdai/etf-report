@@ -1,0 +1,80 @@
+name: 每日调仓信号推送（Server酱）
+
+# 与上游 signal_push.yml 的唯一区别：本文件多了定时器。
+# 上游 signal_push.yml 只有手动触发（作者自己用腾讯云 SCF 定时按门铃）。
+# 执行逻辑完全复用上游 scripts/preclose_push.py，这里不复制业务代码。
+
+on:
+  schedule:
+    # 06:30 UTC = 14:30 CST（北京时间），周一到周五。
+    # GitHub 自带 cron 会漂移 1~3 小时；漂到收盘后也能接受：
+    # 推送的表用当天收盘价算，次日开盘执行。
+    - cron: '30 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run（只打印，不推送到微信）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Get date
+        id: date
+        env:
+          TZ: Asia/Shanghai
+        run: echo "date=$(date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore quant data cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: data/quant
+          key: quant-data-${{ steps.date.outputs.date }}-sc
+          restore-keys: quant-data-
+          enableCrossOsArchive: true
+
+      - name: Full fetch on cold start
+        run: |
+          if [ -z "$(ls -A data/quant/*_daily.csv 2>/dev/null)" ]; then
+            echo "No daily data — full fetch"
+            python scripts/quant_data_fetcher.py --full
+          else
+            echo "Daily data present — skip full fetch"
+          fi
+
+      - name: Run signal push
+        env:
+          TZ: Asia/Shanghai
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: |
+          FLAGS=""
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then FLAGS="--dry-run"; fi
+          python scripts/preclose_push.py $FLAGS
+
+      - name: Save quant data cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/quant
+          key: quant-data-${{ steps.date.outputs.date }}-sc
+          enableCrossOsArchive: true
