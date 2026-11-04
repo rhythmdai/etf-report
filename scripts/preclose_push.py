@@ -265,9 +265,13 @@ for code, target in sorted(positions.items(), key=lambda x: -x[1]):
         close_price = d.get("close", 0)
         if close_price <= 0:
             close_price = d.get("price", 0)
+        px = float(close_price)
+        # 建议挂单价 = 现价 +0.5%，向上取到 0.001 的最小价位。
+        # 目的：限价单挂在收盘前一定成交，成交价只会更低或相等，不会买不到。
+        limit_px = (int(px * 1.005 * 1000) + 1) / 1000.0
         buy_list.append({
             "code": code, "name": name,
-            "target": target, "price": float(close_price),
+            "target": target, "price": px, "limit": limit_px,
             "targetPct": f"{round(target * 100)}%"
         })
 
@@ -278,7 +282,7 @@ if not buy_list:
 log(f"  Buy positions: {len(buy_list)}")
 
 # Build execution reference table
-AMOUNTS = list(range(500000, 605000, 10000))  # 50w - 60w, step 1w
+AMOUNTS = [1000000]  # 只给 100w 一档，自己按实际持仓金额等比换算
 
 now = datetime.now()
 md_lines = [
@@ -314,14 +318,22 @@ md_lines.append(f"| 目标 | {' | '.join(target_cols)} |")
 price_cols = [f"{b['price']:.3f}" for b in buy_list]
 md_lines.append(f"| 现价 | {' | '.join(price_cols)} |")
 
-# Data rows: 金额/股数 in same cell
+# Suggested limit-price row (现价 +0.5%，向上取整到 0.001)
+limit_cols = [f"{b['limit']:.3f}" for b in buy_list]
+md_lines.append(f"| 建议挂单 | {' | '.join(limit_cols)} |")
+
+# Data rows: 金额/股数 in same cell（股数按建议挂单价算，保证 100w 不超支）
 for amt in AMOUNTS:
     cols = [f"**{amt//10000}w**"]
     for b in buy_list:
         alloc = amt * b['target']
-        shares = int(alloc / b['price'] / 100) * 100
+        shares = int(alloc / b['limit'] / 100) * 100
         cols.append(f"{alloc/10000:.1f}w / {shares:,}")
     md_lines.append(f"| {' | '.join(cols)} |")
+
+md_lines.append("")
+md_lines.append("> 买入：按「建议挂单」价挂限价单，14:45–14:55 之间下单，成交价只会更低。")
+md_lines.append("> 卖出：表里没有的持仓全部清掉，直接挂市价单，不要等价。")
 
 content_str = "\n".join(md_lines)
 
