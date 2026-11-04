@@ -580,12 +580,13 @@ def generate_quant_baseline_payload():
     os.makedirs(ASSETS_JS_DIR, exist_ok=True)
     payload_file = os.path.join(ASSETS_JS_DIR, "quant_payload.js")
 
-    # ── 从 YAML 读取 act-1 参数 ─────────────────
+    # ── 从 YAML 读取当前默认预设（DEFAULT_PRESET）参数 ─────────────────
     QUANT_CONFIG = os.path.join(PROJECT_ROOT, "config", "quant_universe.yaml")
+    from etf_report.core.quant_contract import DEFAULT_PRESET as _DEFAULT_PRESET
     preset_params = {}
     try:
-        preset_params = load_quant_preset_params(QUANT_CONFIG, "gam-0")
-        logger.info("从 YAML 读取 gam-0 参数", {"params": {k: v for k, v in preset_params.items() if k != "start_date"}})
+        preset_params = load_quant_preset_params(QUANT_CONFIG)
+        logger.info("从 YAML 读取默认预设参数", {"preset": _DEFAULT_PRESET, "params": {k: v for k, v in preset_params.items() if k != "start_date"}})
     except Exception as e:
         logger.warn("读取 quant_universe.yaml 失败，使用默认参数", {"error": str(e)})
         preset_params = default_quant_preset_params()

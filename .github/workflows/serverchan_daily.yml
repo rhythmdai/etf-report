@@ -66,8 +66,8 @@ jobs:
         env:
           TZ: Asia/Shanghai
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
-          # 禅修者（无杠杆版）：zen-0 的 ma_bull_pos 由 1.8 改为 1.0，最多持 2 只 ETF。
-          PRECLOSE_PRESET: zen-nl
+          # 不写死预设：推送跟随 src/etf_report/core/quant_contract.py 的 DEFAULT_PRESET，
+          # 也就是「当前正在使用的预设」。现在它是 zen-nl（禅修者·无杠杆·仓位 60~100%·MH=2）。
         run: |
           FLAGS=""
           if [[ "${{ inputs.dry_run }}" == "true" ]]; then FLAGS="--dry-run"; fi

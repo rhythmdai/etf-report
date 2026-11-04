@@ -1127,7 +1127,7 @@ var FRONTIER = null;       // loaded from /api/frontier (metrics for preset card
 
 var SCHOOLS = [
  {id:'mh_ar', name:'赌徒', target:'max AR', constraint:'gam-0~2 (MH=2~4)', presets:['gam-0','gam-1','gam-2'], def:'gam-0'},
- {id:'mh_sortino', name:'禅修者', target:'max Sortino', constraint:'zen-0~4 (MH=2~6)', presets:['zen-0','zen-1','zen-2','zen-3','zen-4'], def:'gam-0'},
+ {id:'mh_sortino', name:'禅修者', target:'max Sortino', constraint:'zen-0~4 (MH=2~6) · zen-nl 无杠杆', presets:['zen-nl','zen-0','zen-1','zen-2','zen-3','zen-4'], def:'zen-nl'},
  {id:'mh_calmar', name:'精算师', target:'max Calmar', constraint:'act-0~4 (MH=2~6)', presets:['act-0','act-1','act-2','act-3','act-4'], def:'gam-0'},
  {id:'custom', name:'自定义', target:'自定义', constraint:'—', presets:['cst-1'], def:'cst-1'},
 ];

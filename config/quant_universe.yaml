@@ -695,7 +695,7 @@ presets:
       log_return_deviation: *id006
   zen-nl:
     label: '0L'
-    description: 禅修者0 · 无杠杆 MH=2 N=40 TB=0（zen-0 去掉 1.8 倍融资仓位）
+    description: 禅修者0 · 无杠杆 · 仓位 60%~100% · MH=2 N=40 TB=0
     scoring:
       weights: *id001
       bias_bonus: 0.0

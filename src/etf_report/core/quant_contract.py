@@ -392,4 +392,4 @@ def build_presets_response(cfg):
         for e in cfg.get("universe", [])
     ]
     return result
-DEFAULT_PRESET = "gam-0"
+DEFAULT_PRESET = "zen-nl"

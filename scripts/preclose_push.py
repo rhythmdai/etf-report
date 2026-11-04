@@ -21,8 +21,9 @@ OUTPUT_MD = "--output-md" in sys.argv   # REQ-353: write markdown to Desktop ins
 DRY_RUN = "--dry-run" in sys.argv
 IS_CI = os.environ.get("GITHUB_ACTIONS", "") == "true"
 from etf_report.core.quant_contract import DEFAULT_PRESET
-# Which preset to push. Default keeps upstream behaviour (DEFAULT_PRESET = gam-0);
-# the workflow overrides it via PRECLOSE_PRESET (e.g. zen-nl = 禅修者, no leverage, MH=2).
+# Which preset to push = the one the system currently uses (DEFAULT_PRESET).
+# PRECLOSE_PRESET is only an escape hatch for one-off runs; the workflow does not set it,
+# so a normal daily push always follows DEFAULT_PRESET.
 PRESET = os.environ.get("PRECLOSE_PRESET", "").strip() or DEFAULT_PRESET
 SCHOOL_LABELS = {"gam": "赌徒", "zen": "禅者", "act": "精算师", "cst": "自定义"}
 PRESET_LABEL = next((v for k, v in SCHOOL_LABELS.items() if PRESET.startswith(k + "-")), PRESET)
