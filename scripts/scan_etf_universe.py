@@ -259,7 +259,10 @@ NAME_GROUPS = [
     ('有色', ['有色','矿业','工业金属']),
     ('黄金', ['黄金','金ETF','上海金']), ('豆粕', ['豆粕']),
     ('通信', ['通信','5G','电信']),
-    ('计算机AI', ['计算机','软件','大数据','云计算','数字经济','信创','人工智能','AI','科技','信息','VR']),
+    ('人工智能', ['人工智能','AI']),
+    ('计算机-软件', ['软件','计算机','信创']),
+    ('计算机-云计算', ['云计算','大数据','数字经济']),
+    ('计算机', ['科技','信息','VR']),
     ('汽车', ['汽车','新能源车','智能车','智能驾驶']),
     ('机器人', ['机器人']), ('基建建材', ['基建','建材']),
     ('电力公用', ['电力','公用事业']),
@@ -686,8 +689,9 @@ if args.debug:
 
     # Main table
     HCOLS = ['持仓1','持仓2','持仓3','持仓4','持仓5','持仓6','持仓7','持仓8','持仓9','持仓10']
-    cols4_header = ['代码','名称','粗组','成交额(亿)','得分','排名','排除'] + HCOLS
-    _desc = f'Step 4: ①底1/2(A股{_ashare_cutoff}支) O1>5→淘汰({len(removed_pass1)}支) ②贪心 O2>=8→淘汰({len(removed_pass2)}支). 结果: {len(_kept_codes)}/{len(top1_per_cg)} 入选.'
+    cols4_header = ['代码','名称','粗组','成交额(亿)','历史天数','规模(亿)','得分','排名','排除'] + HCOLS
+    _desc = (f'Step 4: ①底1/2(A股{_ashare_cutoff}支) O1>5→淘汰({len(removed_pass1)}支) ②贪心 O2>=8→淘汰({len(removed_pass2)}支). 结果: {len(_kept_codes)}/{len(top1_per_cg)} 入选.'
+             f'  加权得分 = 0.35×log10(成交额亿) + 0.50×log10(历史天数) + 0.15×log10(规模亿)，权重 35%/50%/15%。')
     rule_row(ws4, 1, _desc, len(cols4_header))
     rule_row(ws4, 2, '排名: A1~A' + str(len(_a_ranked)) + '=A股 | H1~H' + str(len(_h_ranked)) + '=港股. ①N/②N=淘汰顺序. 灰色=已淘汰.', len(cols4_header))
     hdr_row(ws4, 3, cols4_header)
@@ -702,8 +706,9 @@ if args.debug:
             rank_val = _h_rank.get(s['code'], '-')
         else:
             rank_val = '-'
-        vals = [s['code'], s['name'], s['cg'], s['amount_yi'], round(s.get('log_score',0),3),
-                rank_val, _removed_order.get(s['code'], '')]
+        vals = [s['code'], s['name'], s['cg'], s['amount_yi'],
+                s.get('history_days', 0), round(s.get('mcap_yi', 0), 1),
+                round(s.get('log_score',0),3), rank_val, _removed_order.get(s['code'], '')]
         elim_label = vals[-1]  # elimination order, empty if kept
         hnames = get_holding_names(s['code'])
         is_hk = s['cg'].startswith('HK-')
@@ -724,7 +729,7 @@ if args.debug:
                 ws4.cell(row=row, column=ci).fill = EXEMPT_BLUE
         elif not elim_label:
             # Color duplicate holdings (only for kept ETFs)
-            for ci in range(6, len(cols4_header)+1):
+            for ci in range(10, len(cols4_header)+1):
                 val = ws4.cell(row=row, column=ci).value
                 if val in _dup_fills:
                     ws4.cell(row=row, column=ci).fill = _dup_fills[val]
@@ -734,7 +739,7 @@ if args.debug:
 
     # PK pairs summary now inline in main table (see 排除 column)
 
-    widths4 = [10,30,22,14,10,8,8] + [10]*10
+    widths4 = [10,30,22,14,10,10,10,8,8] + [10]*10
     for i, w in enumerate(widths4): ws4.column_dimensions[get_column_letter(i+1)].width = w
 
     # Sheet 5: Full diff — selected + missing pool, with status labels

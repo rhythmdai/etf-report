@@ -134,9 +134,9 @@ universe:
   sector: 资源周期
   marginable: true
   group1: 周期博弈
-- code: '515220'
-  name: 煤炭ETF
-  market: sh
+- code: '159930'
+  name: 能源ETF
+  market: sz
   sector: 资源周期
   marginable: true
   group1: 周期博弈
@@ -335,12 +335,6 @@ universe:
   sector: 科技
   marginable: false
   group1: 成长进攻
-- code: '159697'
-  name: 石油ETF
-  market: sz
-  sector: 资源周期
-  marginable: true
-  group1: 周期博弈
 scoring: null
 confidence:
   type: ma_trend

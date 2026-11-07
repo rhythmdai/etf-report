@@ -288,31 +288,6 @@ anchors:
       - { date: "2026-04-28", reviewer: "AI-REQ-178", change: "Phase 1 批次新增, 全量历史百分位锚点" }
 
   # ============================================================
-  # 515220 煤炭ETF中融
-  # ============================================================
-  # 跟踪指数: 中证煤炭指数 (399998)
-  # 主指标: PE-TTM (原计划用 PB，但 csindex 仅提供 PE)
-  # 煤炭强周期：2015-2016 行业亏损无 PE → 2017 供给侧改革后 PE 稳定在 5~15
-  # ------------------------------------------------------------
-  "515220":
-    name: "煤炭ETF中融"
-    tracking_index: "中证煤炭指数"
-    tracking_index_code: "399998"
-    tushare_ts_code: ""
-    data_source: "csindex"
-    primary_metric: pe_ttm
-    anchors:
-      extreme_low:  { value: 6.11, percentile: 5 }
-      low:          { value: 8.76, percentile: 25 }
-      median:       { value: 10.61, percentile: 50 }
-      high:         { value: 14.89, percentile: 75 }
-      extreme_high: { value: 34.08, percentile: 95 }
-    reference_events: []
-    window_note: "csindex 全量历史 2640 行有效 PE-TTM (2010-2026), 锚点基于纯历史百分位计算。原计划用 PB 但 csindex 仅提供 PE"
-    review_history:
-      - { date: "2026-04-28", reviewer: "AI-REQ-178", change: "Phase 1 批次新增, 全量历史百分位锚点" }
-
-  # ============================================================
   # 512800 银行ETF华宝
   # ============================================================
   # 跟踪指数: 中证银行指数 (399986)
