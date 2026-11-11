@@ -365,13 +365,16 @@ def _fetch_sina_batch(codes: list) -> dict:
             # Validate YYYY-MM-DD format — reject anything that isn't a real date.
             if not __import__('re').match(r'^\d{4}-\d{2}-\d{2}$', date_str):
                 continue
+            # Sina hq field 8 is volume in SHARES (股); the CSV column stores
+            # LOTS (手, 1 lot = 100 shares) — see _parse_tx_rows, where
+            # amount = close * vol * 100. Convert here so every writer agrees.
             result[code] = {
                 "date": date_str,
                 "open": float(fields[1]),
                 "close": float(fields[3]),
                 "high": float(fields[4]),
                 "low": float(fields[5]),
-                "volume": int(float(fields[8])),
+                "volume": int(round(float(fields[8]) / 100.0)),
                 "amount": float(fields[9]),
             }
         except (ValueError, IndexError):
@@ -423,13 +426,32 @@ def update_single(etf: dict, full: bool = False, end_date: str = None,
         row = sina_batch[code]
         sina_date = datetime.strptime(row["date"], "%Y-%m-%d").date()
         if sina_date > last_dt and sina_date <= expected:
-            # Sina has data newer than CSV AND not beyond cool-off → use it
-            new_row = pd.DataFrame([row])
-            append_csv(new_row, daily_path)
-            full_daily = pd.read_csv(daily_path)
-            df_weekly = rebuild_weekly_from_daily(full_daily)
-            save_csv(df_weekly, weekly_path)
-            return 1, 0, "sina+batch"
+            # Sina has data newer than CSV AND not beyond cool-off → use it.
+            # Defensive unit check: the CSV volume column is LOTS (手), so a
+            # healthy row gives amount/(volume*close) ≈ 100. Anything else means
+            # a writer regressed to shares — skip Sina and let Tencent fill it.
+            vol_lots = row.get("volume", 0)
+            amt = row.get("amount", 0)
+            px = row.get("close", 0)
+            if vol_lots and amt and px:
+                implied = amt / (vol_lots * px)
+                if not (50.0 <= implied <= 200.0):
+                    print(f"  [unit-check] {code}: amount/(volume*close)={implied:.2f}, "
+                          f"expected ~100 — skipping Sina row, falling back to Tencent")
+                else:
+                    new_row = pd.DataFrame([row])
+                    append_csv(new_row, daily_path)
+                    full_daily = pd.read_csv(daily_path)
+                    df_weekly = rebuild_weekly_from_daily(full_daily)
+                    save_csv(df_weekly, weekly_path)
+                    return 1, 0, "sina+batch"
+            else:
+                new_row = pd.DataFrame([row])
+                append_csv(new_row, daily_path)
+                full_daily = pd.read_csv(daily_path)
+                df_weekly = rebuild_weekly_from_daily(full_daily)
+                save_csv(df_weekly, weekly_path)
+                return 1, 0, "sina+batch"
 
     # Tencent incremental (multi-day gap or Sina unavailable)
     df_daily = fetch_etf_kline(code, market, "daily", start_date=last_daily, end_date=end_date)

@@ -583,13 +583,28 @@ def _sina_batch_append(cfg, date_str, rt_prices):
     import pandas as _pd
 
     def _append_one(code, rt):
-        """Append one day's Sina data to daily CSV, rebuild weekly."""
+        """Append one day's Sina data to daily CSV, rebuild weekly.
+
+        UNIT CONTRACT: CSV `volume` is in LOTS (手, 1 lot = 100 shares) — see
+        quant_data_fetcher._parse_tx_rows where `amount = close * vol * 100`.
+        Sina realtime `rt["volume"]` is in SHARES (股), hence the /100 here.
+        The ratio check refuses to write a row whose implied unit is wrong.
+        """
         daily_path = QDATA_DIR / f"{code}_daily.csv"
         weekly_path = QDATA_DIR / f"{code}_weekly.csv"
+        vol_lots = int(round(float(rt.get("volume", 0) or 0) / 100.0))
+        amt = float(rt.get("amount", 0) or 0)
+        px = float(rt.get("price", 0) or 0)
+        if vol_lots > 0 and amt > 0 and px > 0:
+            implied = amt / (vol_lots * px)
+            if not (50.0 <= implied <= 200.0):
+                raise ValueError(
+                    f"volume unit check failed: amount/(volume*close)={implied:.2f}, expected ~100"
+                )
         new_row = _pd.DataFrame([{
             "date": date_str, "open": rt["open"], "close": rt["price"],
             "high": rt["high"], "low": rt["low"],
-            "volume": int(float(rt.get("volume", 0))), "amount": rt.get("amount", 0),
+            "volume": vol_lots, "amount": amt,
         }])
         append_csv(new_row, daily_path)
         full_daily = _pd.read_csv(daily_path)
