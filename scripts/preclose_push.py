@@ -335,6 +335,28 @@ md_lines.append("")
 md_lines.append("> 买入：按「建议挂单」价挂限价单，14:45–14:55 之间下单，成交价只会更低。")
 md_lines.append("> 卖出：表里没有的持仓全部清掉，直接挂市价单，不要等价。")
 
+# 评分前五（持仓建议之后）：得分口径与 Tuner 页面一致，scores×100 保留 1 位小数
+top5 = []
+try:
+    scores = latest.get("scores") or {}
+    top5 = sorted(scores.items(), key=lambda kv: -float(kv[1]))[:5]
+except Exception:
+    top5 = []
+if top5:
+    held = {c for c, t in positions.items() if t > 0.005}
+    md_lines.append("")
+    md_lines.append("---")
+    md_lines.append("")
+    md_lines.append("## 评分前五")
+    md_lines.append("")
+    md_lines.append("| 排名 | 标的 | 得分 |")
+    md_lines.append("|--------|------|------|")
+    for rank, (code, sc) in enumerate(top5, 1):
+        flag = " ✅" if code in held else ""
+        md_lines.append(f"| {rank} | {short(code)} {code}{flag} | {float(sc) * 100:.1f} |")
+    md_lines.append("")
+    md_lines.append("> ✅ = 本次建议持有")
+
 content_str = "\n".join(md_lines)
 
 # ═══════════════════════════════════════════════════════════════
