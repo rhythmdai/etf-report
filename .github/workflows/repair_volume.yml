@@ -1,0 +1,76 @@
+name: 数据修复：成交量单位（一次性工具）
+
+# 用途：把历史 CSV 里被写成「股」的 volume 修回「手」（÷100）。
+# 代码层面已于 2026-11-11 修好（quant_tuner / quant_data_fetcher 两条新浪写盘路径
+# 都已换算并加校验），但已经写脏的旧行不会自己变对，需要跑一次本 workflow。
+# 只读代码、只改 data/quant 缓存，不提交任何文件到仓库。
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: '真的写回缓存（关掉则只体检）'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Get date
+        id: date
+        env:
+          TZ: Asia/Shanghai
+        run: echo "date=$(date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore quant data cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: data/quant
+          key: quant-data-${{ steps.date.outputs.date }}-sc
+          restore-keys: quant-data-
+          enableCrossOsArchive: true
+
+      - name: Check data present
+        run: |
+          n=$(ls -1 data/quant/*_daily.csv 2>/dev/null | wc -l)
+          echo "daily csv files: $n"
+          if [ "$n" -eq 0 ]; then
+            echo "::error::缓存里没有数据，先跑一次每日推送/报告把数据拉下来"
+            exit 1
+          fi
+
+      - name: Repair volume units
+        run: |
+          FLAGS=""
+          if [[ "${{ inputs.apply }}" == "true" ]]; then FLAGS="--apply"; fi
+          python scripts/repair_volume_units.py $FLAGS
+
+      - name: Save quant data cache
+        # 用带 -fixed 后缀的新 key：cache 条目不可覆盖，同名 save 会失败。
+        # 下一次运行按 restore-keys 前缀 quant-data- 取「最近创建」的那份，
+        # 也就是这份修好的。
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/quant
+          key: quant-data-${{ steps.date.outputs.date }}-fixed
+          enableCrossOsArchive: true
